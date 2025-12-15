@@ -1,0 +1,387 @@
+import { GoogleGenAI, Type } from "@google/genai";
+import { ContractAnalysis, ConnectedAccount, AccountabilityReport, ProtocolUpdate, SecurityScanResult } from "../types";
+
+// Helper to ensure API Key exists
+const getAiClient = () => {
+  if (!process.env.API_KEY) {
+    throw new Error("API_KEY is missing from environment variables.");
+  }
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
+
+export const generateSovereignCertificate = async (identityName: string, identityType: string, docName: string, docHash: string): Promise<string> => {
+  const ai = getAiClient();
+  const prompt = `
+    Act as the Supreme Digital Authority of the NEOXZ.COM PERPETUAL ENGINE PROJECT.
+    Generate a formal, legally binding "Declaration of Digital Sovereignty" for a signed document.
+    
+    Authority: NEIL RUBIO BALOG (aka NE.B.RU.) of the Philippines.
+    Signer: ${identityName} (${identityType})
+    Document: ${docName}
+    Hash: ${docHash}
+    Timestamp: ${new Date().toLocaleString(undefined, { timeZoneName: 'short' })}
+    
+    The declaration must explicitly state that this digital cryptographic signature irrevocably replaces and supersedes any requirement for a physical "wet ink" signature within the Vast Digital Realm of NEOXZ.
+    
+    Format the output as a formal affidavit with a title, body, and "Sworn Digital Oath to the Perpetual Engine" section.
+  `;
+  
+  // Upgraded to Pro for authoritative legal phrasing
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: prompt,
+  });
+  
+  return response.text || "NEOXZ Digital Signature Verified. Wet-ink requirements superseded by Perpetual Engine Protocol.";
+};
+
+export const generateAccessChallenge = async (url: string): Promise<string> => {
+  const ai = getAiClient();
+  const prompt = `
+    The user is attempting to connect to: "${url}" within the NEOXZ Digital Realm.
+    Generate a concise "Consciousness Challenge" question. 
+    This question verifies the user is human, aware of the NEOXZ security context, and not a bot.
+    Example: "Confirm your alignment with the Perpetual Engine Protocol."
+    Return ONLY the question text.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  });
+
+  return response.text || "Please confirm your intent to navigate this domain.";
+}
+
+export const checkProtocolStatus = async (currentVersion: string): Promise<ProtocolUpdate | null> => {
+  const ai = getAiClient();
+  
+  const prompt = `
+    Act as the NEOXZ.COM Central Command Node.
+    The user's app version is: ${currentVersion}.
+    
+    Determine if a Perpetual Engine system update is required based on the "Evolving Digital Realm".
+    Randomly decide (with 30% chance) if a new update is available. 
+    If available, determine if it is MANDATORY (Ordered by Founder NE.B.RU.) or VOLUNTARY.
+    
+    If no update, return null.
+    
+    If update available, return JSON:
+    {
+      "version": "new_version_number",
+      "type": "MANDATORY" or "VOLUNTARY",
+      "title": "Update Title (e.g. 'NEOXZ Core Patch', 'Realm Expansion v2')",
+      "description": "Why this update is needed for the Perpetual Engine.",
+      "modules": ["list", "of", "affected", "modules"],
+      "mandatingAuthority": "Neil Rubio Balog (NE.B.RU.)"
+    }
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          version: { type: Type.STRING },
+          type: { type: Type.STRING, enum: ["MANDATORY", "VOLUNTARY"] },
+          title: { type: Type.STRING },
+          description: { type: Type.STRING },
+          modules: { type: Type.ARRAY, items: { type: Type.STRING } },
+          mandatingAuthority: { type: Type.STRING, nullable: true }
+        }
+      }
+    }
+  });
+
+  if (response.text) {
+    try {
+        const data = JSON.parse(response.text);
+        if (data && data.version !== currentVersion) return data as ProtocolUpdate;
+    } catch (e) { return null; }
+  }
+  return null;
+}
+
+export const performSecurityScan = async (
+  content: string, 
+  type: 'TEXT' | 'IMAGE_BASE64'
+): Promise<SecurityScanResult> => {
+  const ai = getAiClient();
+
+  const basePrompt = `
+    Act as an elite Cybersecurity Threat Hunter for NEOXZ.COM.
+    Analyze the provided content (Text code or Image) for security threats in the Digital Realm.
+
+    DEEP ANALYSIS TARGETS:
+    1. **Malicious Payloads:** Scan for obfuscated JavaScript (eval, unescape), shellcode patterns, or Base64 encoded executables.
+    2. **Phishing Indicators:** Detect social engineering language ("Act now", "Verify password"), deceptive login forms, or homoglyph attacks.
+    3. **QR/Data Extraction:** If an image is provided, decode the QR or OCR the text. Analyze the EXTRACTED DATA.
+    4. **SQL/Injection Signatures:** Look for 'OR 1=1', 'DROP TABLE', '<script>'.
+
+    RESPONSE FORMAT (JSON):
+    - isSafe: boolean
+    - threatLevel: "SAFE" | "LOW" | "MEDIUM" | "CRITICAL"
+    - threatType: Specific signature found
+    - details: Technical explanation of the finding.
+    - extractedData: The raw data extracted from the scan.
+  `;
+
+  let userContent: any;
+  if (type === 'IMAGE_BASE64') {
+    userContent = {
+      parts: [
+        { inlineData: { data: content, mimeType: 'image/jpeg' } },
+        { text: basePrompt }
+      ]
+    };
+  } else {
+    // TEXT mode
+    userContent = {
+      parts: [{ text: `${basePrompt}\n\nCONTENT TO ANALYZE:\n${content.substring(0, 10000)}` }]
+    };
+  }
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash', // Flash is efficient for rapid scanning
+    contents: userContent,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          isSafe: { type: Type.BOOLEAN },
+          threatLevel: { type: Type.STRING, enum: ['SAFE', 'LOW', 'MEDIUM', 'CRITICAL'] },
+          threatType: { type: Type.STRING },
+          details: { type: Type.STRING },
+          extractedData: { type: Type.STRING }
+        }
+      }
+    }
+  });
+
+  if (response.text) {
+    return JSON.parse(response.text) as SecurityScanResult;
+  }
+
+  throw new Error("Security Scan Failed");
+};
+
+export const analyzeContract = async (contractText: string, isMinor: boolean = false): Promise<ContractAnalysis> => {
+  const ai = getAiClient();
+
+  const prompt = `
+    You are the Senior Compliance Officer for the NEOXZ Perpetual Engine.
+    Objective: Ensure all interactions adhere to the "Norms of Society and the Digital Economy".
+    
+    USER CONTEXT: The user is ${isMinor ? "a MINOR (Under 18)" : "an ADULT"}.
+
+    Analyze the content against:
+    1. Legal Legality: Common law principles.
+    2. Economic Norms: Fair exchange.
+    3. Digital Rights: Data sovereignty.
+    4. NEOXZ Protocol: Identify 'wet ink' requirements as Obsolete Legacy Restrictions.
+    5. Risk Detection: Predatory clauses.
+
+    *** SPECIAL MINOR PROTECTION PROTOCOL ***
+    Strictly flag: Adult material, Gambling, Substances, Unregulated Financial Trading, Binding Debt.
+    
+    Content:
+    "${contractText.substring(0, 25000)}"
+
+    Provide JSON response: riskScore, authenticityScore, riskLevel, identifiedEntity, complianceIssues, keyClauses, recommendation.
+  `;
+
+  // Using gemini-3-pro-preview with Thinking Config for deep reasoning
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: prompt,
+    config: {
+      thinkingConfig: { thinkingBudget: 32768 },
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          riskScore: { type: Type.NUMBER },
+          authenticityScore: { type: Type.NUMBER },
+          riskLevel: { type: Type.STRING, enum: ["Low", "Medium", "High", "Critical"] },
+          identifiedEntity: { type: Type.STRING },
+          complianceIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
+          keyClauses: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                description: { type: Type.STRING },
+                sentiment: { type: Type.STRING, enum: ["positive", "neutral", "negative"] }
+              }
+            }
+          },
+          recommendation: { type: Type.STRING }
+        }
+      }
+    }
+  });
+
+  if (response.text) {
+    return JSON.parse(response.text) as ContractAnalysis;
+  }
+  
+  throw new Error("Failed to generate compliance analysis");
+};
+
+export const analyzeImage = async (base64Data: string, mimeType: string): Promise<ContractAnalysis> => {
+  const ai = getAiClient();
+  const prompt = `Analyze this image for digital sovereignty risks within the NEOXZ realm. Check for steganography, deepfakes, and sensitive data.`;
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: {
+      parts: [
+        { inlineData: { data: base64Data, mimeType: mimeType } },
+        { text: prompt }
+      ]
+    },
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          riskScore: { type: Type.NUMBER },
+          authenticityScore: { type: Type.NUMBER },
+          riskLevel: { type: Type.STRING, enum: ["Low", "Medium", "High", "Critical"] },
+          identifiedEntity: { type: Type.STRING },
+          complianceIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
+          keyClauses: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: {type:Type.STRING}, description:{type:Type.STRING}, sentiment:{type:Type.STRING} } } },
+          recommendation: { type: Type.STRING }
+        }
+      }
+    }
+  });
+  if (response.text) return JSON.parse(response.text) as ContractAnalysis;
+  throw new Error("Failed to analyze image");
+};
+
+export const generateSecureImage = async (prompt: string, aspectRatio: string): Promise<string> => {
+  const ai = getAiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-image-preview',
+    contents: { parts: [{ text: prompt }] },
+    config: { imageConfig: { aspectRatio: aspectRatio as any, imageSize: "1K" } }
+  });
+  for (const part of response.candidates?.[0]?.content?.parts || []) {
+    if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
+  }
+  throw new Error("No image generated");
+};
+
+export const chatWithAi = async (message: string, history: any[]): Promise<string> => {
+  const ai = getAiClient();
+  const chat = ai.chats.create({
+    model: 'gemini-3-pro-preview',
+    history: history,
+    config: {
+      systemInstruction: "You are the NEOXZ AI Counsel. You provide advice on the Perpetual Engine Protocol, digital rights, and navigation of the Digital Realm.",
+    }
+  });
+  const result = await chat.sendMessage({ message });
+  return result.text || "Secure channel silent.";
+};
+
+export const discoverDigitalFootprint = async (email: string): Promise<ConnectedAccount[]> => {
+  const ai = getAiClient();
+  const prompt = `Act as a NEOXZ Cyber Forensic Engine. Simulate a digital footprint scan for: "${email}". Generate plausible connected accounts with risk status.`;
+  const response = await ai.models.generateContent({
+    model: 'gemini-flash-lite-latest',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            platform: { type: Type.STRING },
+            category: { type: Type.STRING, enum: ['SOCIAL', 'FINANCE', 'UTILITY', 'ENTERTAINMENT', 'GOV'] },
+            status: { type: Type.STRING, enum: ['SECURE', 'WARNING', 'CRITICAL_ISSUE'] },
+            issueDescription: { type: Type.STRING },
+            lastSync: { type: Type.NUMBER }
+          }
+        }
+      }
+    }
+  });
+  if (response.text) return JSON.parse(response.text) as ConnectedAccount[];
+  return [];
+};
+
+export const generateLegalNotice = async (entityName: string, violationDescription: string, userProfile: any): Promise<{ noticeTitle: string; noticeBody: string; legalReference: string }> => {
+  const ai = getAiClient();
+  const prompt = `Act as a NEOXZ Sovereignty Attorney. Target: "${entityName}". Violation: "${violationDescription}". Generate a "Notice of Perpetual Engine Protocol Violation".`;
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: { noticeTitle: { type: Type.STRING }, noticeBody: { type: Type.STRING }, legalReference: { type: Type.STRING } }
+      }
+    }
+  });
+  if (response.text) return JSON.parse(response.text) as { noticeTitle: string; noticeBody: string; legalReference: string };
+  throw new Error("Failed to generate legal notice");
+};
+
+export const auditEntityAccountability = async (entityName: string): Promise<AccountabilityReport> => {
+    const ai = getAiClient();
+    const prompt = `Act as a NEOXZ Forensic Auditor. Audit entity: "${entityName}". Determine accountability status within the Digital Realm.`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        thinkingConfig: { thinkingBudget: 4096 },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            entityName: { type: Type.STRING },
+            score: { type: Type.NUMBER },
+            status: { type: Type.STRING, enum: ['VERIFIED_ACCOUNTABLE', 'SUSPICIOUS_OPAQUE', 'UNACCOUNTABLE_GHOST'] },
+            missingMarkers: { type: Type.ARRAY, items: { type: Type.STRING } },
+            liabilityStance: { type: Type.STRING },
+            riskAssessment: { type: Type.STRING }
+          }
+        }
+      }
+    });
+    if (response.text) {
+      const report = JSON.parse(response.text) as AccountabilityReport;
+      report.entityName = entityName;
+      return report;
+    }
+    throw new Error("Failed to audit entity");
+  };
+
+export const generateMarketingContent = async (targetAudience: string, platform: 'TWITTER' | 'LINKEDIN' | 'EMAIL_INVESTOR'): Promise<{ text: string; imagePrompt: string }> => {
+  const ai = getAiClient();
+  const prompt = `Act as a Propagandist for 'NEOXZ.COM - Perpetual Engine'. Product: Authentic Digital Signature. Founder: Neil Rubio Balog (NE.B.RU.). Tone: Cyberpunk, Sovereign. Target: ${targetAudience}. Platform: ${platform}. Return JSON.`;
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: { text: { type: Type.STRING }, imagePrompt: { type: Type.STRING } }
+      }
+    }
+  });
+  if (response.text) return JSON.parse(response.text) as { text: string; imagePrompt: string };
+  throw new Error("Failed to generate marketing content");
+}
