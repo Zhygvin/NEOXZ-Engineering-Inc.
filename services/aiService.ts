@@ -385,3 +385,38 @@ export const generateMarketingContent = async (targetAudience: string, platform:
   if (response.text) return JSON.parse(response.text) as { text: string; imagePrompt: string };
   throw new Error("Failed to generate marketing content");
 }
+
+export const generateDeploymentPipeline = async (repoUrl: string): Promise<{ techStack: string; pipelineConfig: string; strategy: string }> => {
+  const ai = getAiClient();
+  const prompt = `
+    You are the NEOXZ DevOps Architect.
+    Analyze the repository URL: "${repoUrl}".
+    1. Infer the likely technology stack (e.g., React, Next.js, Node.js, Python, Rust) based on common naming conventions or just make an educated assumption for simulation purposes.
+    2. Define a robust deployment strategy (e.g., Docker containerization, Serverless Function, Static Site).
+    3. Generate a complete GitHub Actions YAML configuration for continuous deployment.
+
+    Return JSON:
+    - techStack: e.g. "React + TypeScript (Vite)"
+    - strategy: e.g. "Build -> Dockerize -> Push to NEOXZ Edge Registry -> Rollout"
+    - pipelineConfig: The actual YAML content.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          techStack: { type: Type.STRING },
+          pipelineConfig: { type: Type.STRING },
+          strategy: { type: Type.STRING }
+        }
+      }
+    }
+  });
+
+  if (response.text) return JSON.parse(response.text) as { techStack: string; pipelineConfig: string; strategy: string };
+  throw new Error("Failed to generate deployment configuration.");
+};
