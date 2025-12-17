@@ -35,7 +35,7 @@ export const detectSynthIDWatermark = async (text: string): Promise<WatermarkDet
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -75,7 +75,6 @@ export const generateSovereignCertificate = async (identityName: string, identit
     Format the output as a formal affidavit with a title, body, and "Sworn Digital Oath to the Perpetual Engine" section.
   `;
   
-  // Upgraded to Pro for authoritative legal phrasing
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
@@ -95,7 +94,7 @@ export const generateAccessChallenge = async (url: string): Promise<string> => {
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     contents: prompt,
   });
 
@@ -127,7 +126,7 @@ export const checkProtocolStatus = async (currentVersion: string): Promise<Proto
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -194,7 +193,7 @@ export const performSecurityScan = async (
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash', // Flash is efficient for rapid scanning
+    model: 'gemini-3-flash-preview',
     contents: userContent,
     config: {
       responseMimeType: "application/json",
@@ -243,7 +242,6 @@ export const analyzeContract = async (contractText: string, isMinor: boolean = f
     Provide JSON response: riskScore, authenticityScore, riskLevel, identifiedEntity, complianceIssues, keyClauses, recommendation.
   `;
 
-  // Using gemini-3-pro-preview with Thinking Config for deep reasoning
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
@@ -369,24 +367,6 @@ export const discoverDigitalFootprint = async (email: string): Promise<Connected
   return [];
 };
 
-export const generateLegalNotice = async (entityName: string, violationDescription: string, userProfile: any): Promise<{ noticeTitle: string; noticeBody: string; legalReference: string }> => {
-  const ai = getAiClient();
-  const prompt = `Act as a NEOXZ Sovereignty Attorney. Target: "${entityName}". Violation: "${violationDescription}". Generate a "Notice of Perpetual Engine Protocol Violation".`;
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: { noticeTitle: { type: Type.STRING }, noticeBody: { type: Type.STRING }, legalReference: { type: Type.STRING } }
-      }
-    }
-  });
-  if (response.text) return JSON.parse(response.text) as { noticeTitle: string; noticeBody: string; legalReference: string };
-  throw new Error("Failed to generate legal notice");
-};
-
 export const auditEntityAccountability = async (entityName: string): Promise<AccountabilityReport> => {
     const ai = getAiClient();
     const prompt = `Act as a NEOXZ Forensic Auditor. Audit entity: "${entityName}". Determine accountability status within the Digital Realm.`;
@@ -416,56 +396,3 @@ export const auditEntityAccountability = async (entityName: string): Promise<Acc
     }
     throw new Error("Failed to audit entity");
   };
-
-export const generateMarketingContent = async (targetAudience: string, platform: 'TWITTER' | 'LINKEDIN' | 'EMAIL_INVESTOR'): Promise<{ text: string; imagePrompt: string }> => {
-  const ai = getAiClient();
-  const prompt = `Act as a Propagandist for 'NEOXZ.COM - Perpetual Engine'. Product: Authentic Digital Signature. Founder: Neil Rubio Balog (NE.B.RU.). Tone: Cyberpunk, Sovereign. Target: ${targetAudience}. Platform: ${platform}. Return JSON.`;
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: { text: { type: Type.STRING }, imagePrompt: { type: Type.STRING } }
-      }
-    }
-  });
-  if (response.text) return JSON.parse(response.text) as { text: string; imagePrompt: string };
-  throw new Error("Failed to generate marketing content");
-}
-
-export const generateDeploymentPipeline = async (repoUrl: string): Promise<{ techStack: string; pipelineConfig: string; strategy: string }> => {
-  const ai = getAiClient();
-  const prompt = `
-    You are the NEOXZ DevOps Architect.
-    Analyze the repository URL: "${repoUrl}".
-    1. Infer the likely technology stack (e.g., React, Next.js, Node.js, Python, Rust) based on common naming conventions or just make an educated assumption for simulation purposes.
-    2. Define a robust deployment strategy (e.g., Docker containerization, Serverless Function, Static Site).
-    3. Generate a complete GitHub Actions YAML configuration for continuous deployment.
-
-    Return JSON:
-    - techStack: e.g. "React + TypeScript (Vite)"
-    - strategy: e.g. "Build -> Dockerize -> Push to NEOXZ Edge Registry -> Rollout"
-    - pipelineConfig: The actual YAML content.
-  `;
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          techStack: { type: Type.STRING },
-          pipelineConfig: { type: Type.STRING },
-          strategy: { type: Type.STRING }
-        }
-      }
-    }
-  });
-
-  if (response.text) return JSON.parse(response.text) as { techStack: string; pipelineConfig: string; strategy: string };
-  throw new Error("Failed to generate deployment configuration.");
-};
