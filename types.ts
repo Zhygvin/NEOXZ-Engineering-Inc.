@@ -1,3 +1,4 @@
+
 export interface IdentityProfile {
   email: string;
   fullName: string;
@@ -83,7 +84,7 @@ export interface AuthorityReceipt {
 }
 
 export interface BlockData {
-  type: 'GENESIS' | 'SIGNATURE' | 'IDENTITY_CREATION' | 'ENFORCEMENT_ACTION' | 'ACCOUNTABILITY_FLAG' | 'SYSTEM_UPDATE';
+  type: 'GENESIS' | 'SIGNATURE' | 'IDENTITY_CREATION' | 'ENFORCEMENT_ACTION' | 'ACCOUNTABILITY_FLAG' | 'SYSTEM_UPDATE' | 'VERIFICATION_ATTEMPT' | 'BREACH_REPORT';
   documentName?: string;
   documentHash?: string; // Hash of the file content
   signature?: string;
